@@ -250,6 +250,50 @@ function handleOldApiRequest() {
             cleanupSessions();
             break;
 
+        case 'delete':
+            $file = $_GET['file'] ?? '';
+            if (!$file) {
+                http_response_code(400);
+                die(json_encode(['error' => 'File parameter required']));
+            }
+
+            $file = str_replace(['..', '\\'], '', $file);
+            $file = trim($file, '/');
+
+            $fullPath = $config['root_dir'] . '/' . $file;
+            $realFile = realpath($fullPath);
+            $realRoot = realpath($config['root_dir']);
+
+            // Проверка безопасности пути
+            if ($realFile === false || strpos($realFile, $realRoot) !== 0) {
+                http_response_code(404);
+                die(json_encode(['error' => 'File not found']));
+            }
+
+            // Запрещаем удаление папок
+            if (is_dir($realFile)) {
+                http_response_code(403);
+                die(json_encode(['error' => 'Cannot delete directories']));
+            }
+
+            // Проверка существования файла
+            if (!is_file($realFile)) {
+                http_response_code(404);
+                die(json_encode(['error' => 'File not found']));
+            }
+
+            // Попытка удаления
+            if (@unlink($realFile)) {
+                echo json_encode([
+                    'success' => true,
+                    'message' => 'File deleted successfully'
+                ]);
+            } else {
+                http_response_code(500);
+                die(json_encode(['error' => 'Failed to delete file']));
+            }
+            break;
+
         default:
             http_response_code(400);
             echo json_encode(['error' => 'Invalid action']);
@@ -581,7 +625,14 @@ function handleUpload() {
 
     // Генерируем безопасное имя файла
     $fileName = basename($uploadedFile['name']);
+    // Транслитерация кириллицы
+    $fileName = transliterate($fileName);
+    // Оставляем только безопасные символы
     $fileName = preg_replace('/[^a-zA-Z0-9._-]/', '_', $fileName);
+
+    // Убираем множественные подчеркивания
+    $fileName = preg_replace('/_+/', '_', $fileName);
+    $fileName = trim($fileName, '_');
 
     // Проверка расширения (если установлены ограничения)
     if (!empty($config['allowed_upload_extensions'])) {
@@ -615,4 +666,27 @@ function handleUpload() {
         http_response_code(500);
         die(json_encode(['error' => 'Failed to save file']));
     }
+}
+
+// Функция транслитерации кириллицы
+function transliterate($string) {
+    $translit = [
+        'а' => 'a', 'б' => 'b', 'в' => 'v', 'г' => 'g', 'д' => 'd',
+        'е' => 'e', 'ё' => 'yo', 'ж' => 'zh', 'з' => 'z', 'и' => 'i',
+        'й' => 'y', 'к' => 'k', 'л' => 'l', 'м' => 'm', 'н' => 'n',
+        'о' => 'o', 'п' => 'p', 'р' => 'r', 'с' => 's', 'т' => 't',
+        'у' => 'u', 'ф' => 'f', 'х' => 'h', 'ц' => 'ts', 'ч' => 'ch',
+        'ш' => 'sh', 'щ' => 'sch', 'ъ' => '', 'ы' => 'y', 'ь' => '',
+        'э' => 'e', 'ю' => 'yu', 'я' => 'ya',
+        'А' => 'A', 'Б' => 'B', 'В' => 'V', 'Г' => 'G', 'Д' => 'D',
+        'Е' => 'E', 'Ё' => 'Yo', 'Ж' => 'Zh', 'З' => 'Z', 'И' => 'I',
+        'Й' => 'Y', 'К' => 'K', 'Л' => 'L', 'М' => 'M', 'Н' => 'N',
+        'О' => 'O', 'П' => 'P', 'Р' => 'R', 'С' => 'S', 'Т' => 'T',
+        'У' => 'U', 'Ф' => 'F', 'Х' => 'H', 'Ц' => 'Ts', 'Ч' => 'Ch',
+        'Ш' => 'Sh', 'Щ' => 'Sch', 'Ъ' => '', 'Ы' => 'Y', 'Ь' => '',
+        'Э' => 'E', 'Ю' => 'Yu', 'Я' => 'Ya',
+        ' ' => '_', '№' => 'N'
+    ];
+
+    return strtr($string, $translit);
 }

@@ -302,12 +302,18 @@
                                    class="text-2xl mr-3"
                                    :style="'color: ' + getFileColor(file)"></i>
                                 <span class="text-sm">{{ file.name }}</span>
-                                <button v-if="file.type === 'file'"
-                                        @click.stop="copyDownloadLink(file)"
-                                        class="ml-2 p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
-                                        title="Копировать ссылку">
-                                    <i class="fas fa-link text-sm"></i>
-                                </button>
+                                <div v-if="file.type === 'file'" class="ml-auto flex items-center gap-2">
+                                    <button @click.stop="copyDownloadLink(file)"
+                                            class="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                                            title="Копировать ссылку">
+                                        <i class="fas fa-link text-sm"></i>
+                                    </button>
+                                    <button @click.stop="confirmDelete(file)"
+                                            class="p-1 text-red-400 hover:text-red-600 dark:hover:text-red-500 transition-colors"
+                                            title="Удалить файл">
+                                        <i class="fas fa-trash text-sm"></i>
+                                    </button>
+                                </div>
                             </div>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 hidden sm:table-cell">
@@ -328,12 +334,18 @@
                      :key="file.path"
                      @click="handleFileClick(file)"
                      class="bg-white dark:bg-gray-800 rounded-lg p-4 hover:shadow-lg cursor-pointer transition-all duration-200 hover:-translate-y-1 text-center group relative">
-                    <button v-if="file.type === 'file'"
-                            @click.stop="copyDownloadLink(file)"
-                            class="absolute top-2 right-2 p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 opacity-0 group-hover:opacity-100 transition-all"
-                            title="Копировать ссылку">
-                        <i class="fas fa-link text-sm"></i>
-                    </button>
+                    <div v-if="file.type === 'file'" class="absolute top-2 right-2 flex gap-1">
+                        <button @click.stop="copyDownloadLink(file)"
+                                class="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 opacity-0 group-hover:opacity-100 transition-all"
+                                title="Копировать ссылку">
+                            <i class="fas fa-link text-sm"></i>
+                        </button>
+                        <button @click.stop="confirmDelete(file)"
+                                class="p-1 text-red-400 hover:text-red-600 dark:hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
+                                title="Удалить файл">
+                            <i class="fas fa-trash text-sm"></i>
+                        </button>
+                    </div>
                     <i :class="getFileIcon(file)"
                        class="text-5xl mb-2 group-hover:scale-110 transition-transform"
                        :style="'color: ' + getFileColor(file)"></i>
@@ -388,15 +400,9 @@
 
                             <!-- File List -->
                             <div v-if="uploadFiles.length > 0" class="mt-6">
-                                <div class="flex justify-between items-center mb-4">
-                                    <h3 class="font-medium">
-                                        Выбрано файлов: {{ uploadFiles.length }} ({{ totalUploadSize }})
-                                    </h3>
-                                    <button @click="uploadFiles = []; uploadProgress = {}"
-                                            class="text-sm text-red-600 hover:text-red-700">
-                                        Очистить все
-                                    </button>
-                                </div>
+                                <h3 class="font-medium mb-4">
+                                    Выбран файл:
+                                </h3>
 
                                 <div class="space-y-2">
                                     <div v-for="(file, index) in uploadFiles"
@@ -441,6 +447,33 @@
                                 <i v-if="!uploading" class="fas fa-upload mr-2"></i>
                                 <i v-else class="fas fa-spinner fa-spin mr-2"></i>
                                 {{ uploading ? 'Загрузка...' : 'Загрузить' }}
+                            </button>
+                        </div>
+                    </div>
+                </transition>
+            </div>
+        </transition>
+
+        <!-- Delete Confirmation Modal -->
+        <transition name="fade">
+            <div v-if="showDeleteModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                <transition name="slide-fade">
+                    <div v-if="showDeleteModal" class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 max-w-md w-full">
+                        <h3 class="text-lg font-semibold mb-4">Подтверждение удаления</h3>
+                        <p class="text-gray-600 dark:text-gray-400 mb-6">
+                            Вы уверены, что хотите удалить файл <strong class="text-gray-900 dark:text-gray-100">{{ fileToDelete?.name }}</strong>?
+                        </p>
+                        <div class="flex justify-end gap-3">
+                            <button @click="cancelDelete"
+                                    class="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors">
+                                Отмена
+                            </button>
+                            <button @click="deleteFile"
+                                    :disabled="deleting"
+                                    class="bg-red-500 hover:bg-red-600 text-white font-medium py-2 px-4 rounded-md transition-colors disabled:opacity-50">
+                                <i v-if="!deleting" class="fas fa-trash mr-2"></i>
+                                <i v-else class="fas fa-spinner fa-spin mr-2"></i>
+                                {{ deleting ? 'Удаление...' : 'Удалить' }}
                             </button>
                         </div>
                     </div>

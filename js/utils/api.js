@@ -172,5 +172,20 @@ window.API = {
         }
 
         return data;
+    },
+
+    // Удалить файл
+    async deleteFile(path) {
+        const response = await fetch(`${this.oldApiUrl}?action=delete&file=${encodeURIComponent(path)}`, {
+            method: 'GET',
+            headers: this.getAuthHeaders()
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to delete file');
+        }
+
+        return await response.json();
     }
 };

@@ -52,7 +52,12 @@ new Vue({
         dragOver: false,
 
         // Theme
-        isDark: false
+        isDark: false,
+
+        // Delete
+        showDeleteModal: false,
+        fileToDelete: null,
+        deleting: false
     },
 
     computed: {
@@ -288,23 +293,27 @@ new Vue({
         // Upload methods
         handleFileSelect(event) {
             const files = Array.from(event.target.files);
-            this.addUploadFiles(files);
+            if (files.length > 0) {
+                // Ограничиваем одним файлом
+                this.uploadFiles = [files[0]];
+                this.uploadProgress = {};
+                this.$set(this.uploadProgress, files[0].name, 0);
+            }
+            // Очищаем input для возможности выбрать тот же файл снова
+            event.target.value = '';
         },
 
         handleDrop(event) {
             this.dragOver = false;
             const files = Array.from(event.dataTransfer.files);
-            this.addUploadFiles(files);
+            if (files.length > 0) {
+                // Ограничиваем одним файлом
+                this.uploadFiles = [files[0]];
+                this.uploadProgress = {};
+                this.$set(this.uploadProgress, files[0].name, 0);
+            }
         },
 
-        addUploadFiles(files) {
-            files.forEach(file => {
-                if (!this.uploadFiles.find(f => f.name === file.name && f.size === file.size)) {
-                    this.uploadFiles.push(file);
-                    this.$set(this.uploadProgress, file.name, 0);
-                }
-            });
-        },
 
         removeUploadFile(index) {
             const file = this.uploadFiles[index];
@@ -433,6 +442,37 @@ new Vue({
 
         formatDate(timestamp) {
             return FileHelpers.formatDate(timestamp);
+        },
+
+        // Delete methods
+        confirmDelete(file) {
+            this.fileToDelete = file;
+            this.showDeleteModal = true;
+        },
+
+        cancelDelete() {
+            this.fileToDelete = null;
+            this.showDeleteModal = false;
+        },
+
+        async deleteFile() {
+            if (!this.fileToDelete) return;
+
+            this.deleting = true;
+
+            try {
+                await API.deleteFile(this.fileToDelete.relativePath);
+                this.showToast('Файл удален успешно', 'success');
+                this.showDeleteModal = false;
+                this.fileToDelete = null;
+                // Обновляем список файлов
+                this.refreshFiles();
+            } catch (error) {
+                console.error('Delete error:', error);
+                this.showToast(error.message || 'Ошибка при удалении файла', 'error');
+            } finally {
+                this.deleting = false;
+            }
         }
     },
 
