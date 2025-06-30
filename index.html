@@ -1,231 +1,459 @@
 <!DOCTYPE html>
-<html lang="ru" class="dark">
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Файловый менеджер</title>
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
-    
+
     <!-- Vue.js -->
     <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
-    
-    <!-- Tailwind CSS v3 (стабильная версия с рабочим dark mode) -->
+
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Font Awesome для иконок (последняя версия 6.7.1) -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.1/css/all.min.css">
-    
-    <!-- Стили приложения -->
-    <link rel="stylesheet" href="css/main.css">
-    <link rel="stylesheet" href="css/transitions.css">
-    <link rel="stylesheet" href="css/components.css">
-    <link rel="stylesheet" href="css/theme-fix.css">
-    <link rel="stylesheet" href="css/tailwind-dark-mode.css">
-    
-    <!-- Tailwind конфигурация -->
     <script>
-        // Временное решение пока не работает CDN
-        if (typeof tailwind !== 'undefined') {
-            tailwind.config = {
-                darkMode: 'class',
-                theme: {
-                    extend: {
-                        animation: {
-                            'spin': 'spin 1s linear infinite',
-                            'fade-in': 'fadeIn 0.2s ease-in-out',
-                        }
-                    }
-                }
-            }
+        tailwind.config = {
+            darkMode: 'class'
         }
     </script>
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.1/css/all.min.css">
+
+    <!-- Стили приложения -->
+    <style>
+        [v-cloak] { display: none; }
+
+        /* Анимации */
+        .fade-enter-active, .fade-leave-active {
+            transition: opacity 0.3s;
+        }
+        .fade-enter, .fade-leave-to {
+            opacity: 0;
+        }
+
+        .slide-fade-enter-active {
+            transition: all 0.3s ease;
+        }
+        .slide-fade-leave-active {
+            transition: all 0.2s ease;
+        }
+        .slide-fade-enter {
+            transform: translateY(-10px);
+            opacity: 0;
+        }
+        .slide-fade-leave-to {
+            transform: translateY(10px);
+            opacity: 0;
+        }
+
+        /* Scrollbar */
+        .scrollbar-thin {
+            scrollbar-width: thin;
+        }
+        .scrollbar-thin::-webkit-scrollbar {
+            width: 8px;
+        }
+        .scrollbar-thin::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .scrollbar-thin::-webkit-scrollbar-thumb {
+            background-color: rgba(156, 163, 175, 0.5);
+            border-radius: 4px;
+        }
+        .dark .scrollbar-thin::-webkit-scrollbar-thumb {
+            background-color: rgba(75, 85, 99, 0.5);
+        }
+    </style>
 </head>
 <body class="bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors duration-200">
-    <div id="app" v-cloak>
-        <!-- Toast Notification Component -->
-        <toast-notification 
-            v-if="toast.show"
-            :message="toast.message"
-            :type="toast.type"
-            @close="closeToast"
-        ></toast-notification>
-
-        <!-- Auth Modal Component -->
-        <auth-modal 
-            v-if="showAuthModal"
-            :error="authError"
-            :loading="authLoading"
-            @login="handleLogin"
-            @clear-error="authError = ''"
-        ></auth-modal>
-
-        <!-- Main File Manager Component -->
-        <file-manager 
-            v-if="!showAuthModal"
-            :user="currentUser"
-            @logout="handleLogout"
-        ></file-manager>
-    </div>
-
-    <!-- Templates Components -->
-    
-    <!-- Toast Notification Template -->
-    <script type="text/x-template" id="toast-notification-template">
-        <transition name="slide-fade">
-            <div :class="[
-                     'fixed top-4 right-4 z-50 text-white px-6 py-3 rounded-lg shadow-lg flex items-center space-x-2',
-                     type === 'error' ? 'bg-red-500' : 
-                     type === 'info' ? 'bg-blue-500' : 'bg-green-500'
-                 ]">
-                <i :class="[
+<div id="app" v-cloak>
+    <!-- Toast Notification -->
+    <transition name="slide-fade">
+        <div v-if="toast.show"
+             :class="[
+                    'fixed top-4 right-4 z-50 text-white px-6 py-3 rounded-lg shadow-lg flex items-center space-x-2',
+                    toast.type === 'error' ? 'bg-red-500' :
+                    toast.type === 'info' ? 'bg-blue-500' : 'bg-green-500'
+                ]">
+            <i :class="[
                     'fas',
-                    type === 'error' ? 'fa-exclamation-circle' : 
-                    type === 'info' ? 'fa-info-circle' : 'fa-check-circle'
+                    toast.type === 'error' ? 'fa-exclamation-circle' :
+                    toast.type === 'info' ? 'fa-info-circle' : 'fa-check-circle'
                 ]"></i>
-                <span>{{ message }}</span>
-                <button @click="$emit('close')" class="ml-2 hover:opacity-80">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-        </transition>
-    </script>
+            <span>{{ toast.message }}</span>
+            <button @click="closeToast" class="ml-2 hover:opacity-80">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    </transition>
 
-    <!-- Auth Modal Template -->
-    <script type="text/x-template" id="auth-modal-template">
-        <transition name="fade">
-            <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                <transition name="slide-fade">
-                    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-md">
-                        <h2 class="text-2xl font-light mb-6 text-center">Авторизация</h2>
-                        
-                        <div v-if="error" 
-                             class="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
-                            {{ error }}
+    <!-- Auth Modal -->
+    <transition name="fade">
+        <div v-if="showAuthModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <transition name="slide-fade">
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-md">
+                    <h2 class="text-2xl font-light mb-6 text-center">Авторизация</h2>
+
+                    <div v-if="authError"
+                         class="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+                        {{ authError }}
+                    </div>
+
+                    <form @submit.prevent="handleLogin">
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
+                                Имя пользователя
+                            </label>
+                            <input type="text"
+                                   v-model="loginForm.username"
+                                   @input="authError = ''"
+                                   required
+                                   ref="usernameInput"
+                                   class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700">
                         </div>
-                        
-                        <form @submit.prevent="submitLogin">
-                            <div class="mb-4">
-                                <label class="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
-                                    Имя пользователя
-                                </label>
-                                <input type="text" 
-                                       v-model="credentials.username" 
-                                       @input="$emit('clear-error')"
-                                       required
-                                       ref="usernameInput"
-                                       class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700">
-                            </div>
-                            <div class="mb-6">
-                                <label class="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
-                                    Пароль
-                                </label>
-                                <input type="password" 
-                                       v-model="credentials.password" 
-                                       @input="$emit('clear-error')"
-                                       required
-                                       class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700">
-                            </div>
-                            <button type="submit" 
-                                    :disabled="loading"
-                                    class="w-full bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-md transition-colors duration-200 disabled:opacity-50">
-                                <span v-if="!loading">Войти</span>
-                                <span v-else>
+                        <div class="mb-6">
+                            <label class="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
+                                Пароль
+                            </label>
+                            <input type="password"
+                                   v-model="loginForm.password"
+                                   @input="authError = ''"
+                                   required
+                                   class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700">
+                        </div>
+                        <button type="submit"
+                                :disabled="authLoading"
+                                class="w-full bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-md transition-colors duration-200 disabled:opacity-50">
+                            <span v-if="!authLoading">Войти</span>
+                            <span v-else>
                                     <i class="fas fa-spinner fa-spin mr-2"></i>
                                     Вход...
                                 </span>
+                        </button>
+                    </form>
+                </div>
+            </transition>
+        </div>
+    </transition>
+
+    <!-- File Manager -->
+    <div v-if="!showAuthModal" class="min-h-screen">
+        <!-- Header -->
+        <header class="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between items-center h-16">
+                    <h1 class="text-xl font-light">Файловый менеджер</h1>
+                    <div class="flex items-center space-x-4">
+                            <span class="text-sm text-gray-600 dark:text-gray-400">
+                                {{ currentUser.name || currentUser.username }}
+                            </span>
+                        <button @click="toggleTheme"
+                                class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                                title="Переключить тему">
+                            <i v-if="isDark" class="fas fa-sun text-yellow-400"></i>
+                            <i v-else class="fas fa-moon text-gray-600"></i>
+                        </button>
+                        <button @click="handleLogout"
+                                class="px-4 py-2 text-sm bg-red-500 hover:bg-red-600 text-white rounded-md transition-colors">
+                            Выйти
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Toolbar -->
+        <div class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+                <div class="flex flex-wrap gap-3 items-center">
+                    <!-- Search -->
+                    <div class="relative flex-1 min-w-[200px] max-w-md">
+                        <input type="text"
+                               v-model="filters.searchQuery"
+                               placeholder="Поиск в текущей папке..."
+                               class="w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-sm">
+                        <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                    </div>
+
+                    <!-- Sort -->
+                    <div class="flex items-center gap-2">
+                        <select v-model="filters.sortBy"
+                                class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-sm">
+                            <option value="name">По имени</option>
+                            <option value="size">По размеру</option>
+                            <option value="date">По дате</option>
+                            <option value="type">По типу</option>
+                        </select>
+                        <button @click="filters.sortReverse = !filters.sortReverse"
+                                class="p-2 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700"
+                                :title="filters.sortReverse ? 'По убыванию' : 'По возрастанию'">
+                            <i :class="filters.sortReverse ? 'fas fa-sort-amount-down' : 'fas fa-sort-amount-up'"></i>
+                        </button>
+                    </div>
+
+                    <!-- View Toggle -->
+                    <div class="flex border border-gray-300 dark:border-gray-600 rounded-md overflow-hidden">
+                        <button @click="filters.viewMode = 'list'"
+                                :class="filters.viewMode === 'list' ? 'bg-blue-500 text-white' : 'bg-white dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600'"
+                                class="px-3 py-2 text-sm transition-colors">
+                            <i class="fas fa-list"></i>
+                        </button>
+                        <button @click="filters.viewMode = 'grid'"
+                                :class="filters.viewMode === 'grid' ? 'bg-blue-500 text-white' : 'bg-white dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600'"
+                                class="px-3 py-2 text-sm transition-colors border-l border-gray-300 dark:border-gray-600">
+                            <i class="fas fa-th-large"></i>
+                        </button>
+                    </div>
+
+                    <!-- Filters -->
+                    <div class="flex flex-wrap gap-2">
+                        <button v-for="filter in filterOptions"
+                                :key="filter.value"
+                                @click="filters.currentFilter = filter.value"
+                                :class="filters.currentFilter === filter.value ? 'bg-blue-500 text-white' : 'bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600'"
+                                class="px-3 py-1 rounded-full text-sm transition-colors">
+                            <span>{{ filter.icon }} {{ filter.label }}</span>
+                        </button>
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="flex gap-2 ml-auto">
+                        <button v-if="currentPath"
+                                @click="showUploadModal = true"
+                                class="p-2 bg-green-500 hover:bg-green-600 text-white rounded-md transition-colors"
+                                title="Загрузить файлы">
+                            <i class="fas fa-upload"></i>
+                        </button>
+                        <button @click="refreshFiles"
+                                class="p-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-md transition-colors"
+                                title="Обновить">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                        <button @click="navigateHome"
+                                class="p-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-md transition-colors"
+                                title="Домой">
+                            <i class="fas fa-home"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Breadcrumb -->
+        <div class="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+                <nav class="flex items-center space-x-2 text-sm">
+                    <button @click="loadFiles('')"
+                            class="text-blue-500 hover:text-blue-600 transition-colors">
+                        <i class="fas fa-home"></i> Домой
+                    </button>
+                    <template v-for="(item, index) in breadcrumb">
+                            <span :key="'sep-' + index" class="flex items-center space-x-2">
+                                <i class="fas fa-chevron-right text-gray-400 text-xs"></i>
+                                <button @click="loadFiles(item.path)"
+                                        class="text-blue-500 hover:text-blue-600 transition-colors">
+                                    {{ item.name }}
+                                </button>
+                            </span>
+                    </template>
+                </nav>
+            </div>
+        </div>
+
+        <!-- Content -->
+        <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <!-- Loading -->
+            <div v-if="loading" class="flex justify-center items-center py-12">
+                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+            </div>
+
+            <!-- Empty State -->
+            <div v-if="!loading && filteredFiles.length === 0" class="text-center py-12 text-gray-500">
+                <i class="fas fa-folder-open text-6xl mb-4"></i>
+                <p>{{ filters.searchQuery ? 'Ничего не найдено' : 'Папка пуста' }}</p>
+            </div>
+
+            <!-- List View -->
+            <div v-if="!loading && filters.viewMode === 'list' && filteredFiles.length > 0"
+                 class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+                <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                    <thead class="bg-gray-50 dark:bg-gray-700">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                            Имя
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider hidden sm:table-cell">
+                            Размер
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider hidden md:table-cell">
+                            Изменено
+                        </th>
+                    </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                    <tr v-for="file in filteredFiles"
+                        :key="file.path"
+                        @click="handleFileClick(file)"
+                        class="hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors">
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex items-center">
+                                <i :class="getFileIcon(file)"
+                                   class="text-2xl mr-3"
+                                   :style="'color: ' + getFileColor(file)"></i>
+                                <span class="text-sm">{{ file.name }}</span>
+                                <button v-if="file.type === 'file'"
+                                        @click.stop="copyDownloadLink(file)"
+                                        class="ml-2 p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                                        title="Копировать ссылку">
+                                    <i class="fas fa-link text-sm"></i>
+                                </button>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 hidden sm:table-cell">
+                            <span>{{ file.type === 'file' ? formatFileSize(file.size) : '-' }}</span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 hidden md:table-cell">
+                            <span>{{ formatDate(file.modified) }}</span>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Grid View -->
+            <div v-if="!loading && filters.viewMode === 'grid' && filteredFiles.length > 0"
+                 class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                <div v-for="file in filteredFiles"
+                     :key="file.path"
+                     @click="handleFileClick(file)"
+                     class="bg-white dark:bg-gray-800 rounded-lg p-4 hover:shadow-lg cursor-pointer transition-all duration-200 hover:-translate-y-1 text-center group relative">
+                    <button v-if="file.type === 'file'"
+                            @click.stop="copyDownloadLink(file)"
+                            class="absolute top-2 right-2 p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 opacity-0 group-hover:opacity-100 transition-all"
+                            title="Копировать ссылку">
+                        <i class="fas fa-link text-sm"></i>
+                    </button>
+                    <i :class="getFileIcon(file)"
+                       class="text-5xl mb-2 group-hover:scale-110 transition-transform"
+                       :style="'color: ' + getFileColor(file)"></i>
+                    <p class="text-sm truncate">{{ file.name }}</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        {{ file.type === 'file' ? formatFileSize(file.size) : '' }}
+                    </p>
+                </div>
+            </div>
+        </main>
+
+        <!-- Upload Modal -->
+        <transition name="fade">
+            <div v-if="showUploadModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                <transition name="slide-fade">
+                    <div v-if="showUploadModal" class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-2xl max-h-[80vh] flex flex-col">
+                        <!-- Header -->
+                        <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                            <h2 class="text-xl font-semibold">Загрузка файлов</h2>
+                            <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                                Загрузка в: {{ currentPath || 'Корневая папка' }}
+                            </p>
+                        </div>
+
+                        <!-- Drop Zone -->
+                        <div class="p-6 flex-1 overflow-y-auto">
+                            <div
+                                    @drop.prevent="handleDrop"
+                                    @dragover.prevent="dragOver = true"
+                                    @dragleave.prevent="dragOver = false"
+                                    :class="[
+                                        'border-2 border-dashed rounded-lg p-8 text-center transition-colors',
+                                        dragOver ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' : 'border-gray-300 dark:border-gray-600'
+                                    ]">
+
+                                <i class="fas fa-cloud-upload-alt text-4xl mb-4"
+                                   :class="dragOver ? 'text-blue-500' : 'text-gray-400'"></i>
+
+                                <p class="text-gray-600 dark:text-gray-400 mb-4">
+                                    Перетащите файлы сюда или
+                                </p>
+
+                                <label class="bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-md transition-colors cursor-pointer">
+                                    <i class="fas fa-folder-open mr-2"></i>
+                                    Выбрать файлы
+                                    <input type="file"
+                                           multiple
+                                           @change="handleFileSelect"
+                                           class="hidden">
+                                </label>
+                            </div>
+
+                            <!-- File List -->
+                            <div v-if="uploadFiles.length > 0" class="mt-6">
+                                <div class="flex justify-between items-center mb-4">
+                                    <h3 class="font-medium">
+                                        Выбрано файлов: {{ uploadFiles.length }} ({{ totalUploadSize }})
+                                    </h3>
+                                    <button @click="uploadFiles = []; uploadProgress = {}"
+                                            class="text-sm text-red-600 hover:text-red-700">
+                                        Очистить все
+                                    </button>
+                                </div>
+
+                                <div class="space-y-2">
+                                    <div v-for="(file, index) in uploadFiles"
+                                         :key="file.name + file.size"
+                                         class="flex items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+
+                                        <i :class="getUploadFileIcon(file)"
+                                           class="text-xl mr-3 text-gray-600 dark:text-gray-400"></i>
+
+                                        <div class="flex-1 min-w-0">
+                                            <p class="text-sm font-medium truncate">{{ file.name }}</p>
+                                            <p class="text-xs text-gray-500">{{ formatFileSize(file.size) }}</p>
+
+                                            <!-- Progress Bar -->
+                                            <div v-if="uploadProgress[file.name] > 0"
+                                                 class="mt-1 w-full bg-gray-200 dark:bg-gray-600 rounded-full h-1.5">
+                                                <div class="bg-blue-500 h-1.5 rounded-full transition-all duration-300"
+                                                     :style="'width: ' + uploadProgress[file.name] + '%'"></div>
+                                            </div>
+                                        </div>
+
+                                        <button v-if="!uploading"
+                                                @click="removeUploadFile(index)"
+                                                class="ml-3 p-1 text-red-600 hover:text-red-700">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Footer -->
+                        <div class="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-3">
+                            <button @click="closeUploadModal"
+                                    :disabled="uploading"
+                                    class="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors">
+                                Отмена
                             </button>
-                        </form>
+                            <button @click="startUpload"
+                                    :disabled="uploadFiles.length === 0 || uploading"
+                                    class="bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-md transition-colors disabled:opacity-50">
+                                <i v-if="!uploading" class="fas fa-upload mr-2"></i>
+                                <i v-else class="fas fa-spinner fa-spin mr-2"></i>
+                                {{ uploading ? 'Загрузка...' : 'Загрузить' }}
+                            </button>
+                        </div>
                     </div>
                 </transition>
             </div>
         </transition>
-    </script>
+    </div>
+</div>
 
-    <!-- File Manager Template -->
-    <script type="text/x-template" id="file-manager-template">
-        <div class="min-h-screen">
-            <!-- Header Component -->
-            <file-manager-header 
-                :user="user"
-                @toggle-theme="toggleTheme"
-                @logout="$emit('logout')"
-            ></file-manager-header>
-
-            <!-- Toolbar Component -->
-            <file-manager-toolbar
-                v-model="filters"
-                @refresh="refreshFiles"
-                @go-home="navigateHome"
-                @search-mode-change="handleSearchModeChange"
-            ></file-manager-toolbar>
-
-            <!-- Breadcrumb Component -->
-            <file-breadcrumb
-                :items="breadcrumb"
-                @navigate="loadFiles"
-            ></file-breadcrumb>
-
-            <!-- Content Area -->
-            <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-                <!-- Loading State -->
-                <loading-spinner v-if="loading"></loading-spinner>
-
-                <!-- Empty State -->
-                <empty-state 
-                    v-if="!loading && filteredFiles.length === 0"
-                    message="Папка пуста"
-                ></empty-state>
-
-                <!-- File List View -->
-                <file-list-view
-                    v-if="!loading && filters.viewMode === 'list' && filteredFiles.length > 0"
-                    :files="filteredFiles"
-                    @file-click="handleFileClick"
-                    @copy-link="copyDownloadLink"
-                ></file-list-view>
-
-                <!-- File Grid View -->
-                <file-grid-view
-                    v-if="!loading && filters.viewMode === 'grid' && filteredFiles.length > 0"
-                    :files="filteredFiles"
-                    @file-click="handleFileClick"
-                    @copy-link="copyDownloadLink"
-                ></file-grid-view>
-            </main>
-
-            <!-- Download Progress Component -->
-            <download-progress
-                v-if="downloading"
-                :progress="downloadProgress"
-                @close="downloading = false"
-            ></download-progress>
-        </div>
-    </script>
-
-    <!-- Load JavaScript modules -->
-    <script src="js/utils/theme-state.js"></script>
-    <script src="js/utils/api.js"></script>
-    <script src="js/utils/file-helpers.js"></script>
-    <script src="js/utils/storage.js"></script>
-    <script src="js/utils/theme-debug.js"></script>
-    
-    <!-- Load Vue components -->
-    <script src="js/components/common/toast-notification.js"></script>
-    <script src="js/components/common/loading-spinner.js"></script>
-    <script src="js/components/common/empty-state.js"></script>
-    
-    <script src="js/components/auth/auth-modal.js"></script>
-    
-    <script src="js/components/file-manager/file-manager-header.js"></script>
-    <script src="js/components/file-manager/file-manager-toolbar.js"></script>
-    <script src="js/components/file-manager/file-breadcrumb.js"></script>
-    <script src="js/components/file-manager/file-list-view.js"></script>
-    <script src="js/components/file-manager/file-grid-view.js"></script>
-    <script src="js/components/file-manager/download-progress.js"></script>
-    <script src="js/components/file-manager/upload-modal.js"></script>
-    <script src="js/components/file-manager/file-manager.js"></script>
-    
-    <!-- Main app -->
-    <script src="js/app.js"></script>
+<!-- Scripts -->
+<script src="js/utils/api.js"></script>
+<script src="js/utils/storage.js"></script>
+<script src="js/utils/file-helpers.js"></script>
+<script src="js/app.js"></script>
 </body>
 </html>
