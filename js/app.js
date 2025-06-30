@@ -48,6 +48,8 @@ new Vue({
         showUploadModal: false,
         uploadFiles: [],
         uploadProgress: {},
+        uploadSpeed: {},
+        uploadStartTime: {},
         uploading: false,
         dragOver: false,
 
@@ -345,16 +347,38 @@ new Vue({
 
             const xhr = new XMLHttpRequest();
 
+            // Время начала загрузки
+            this.$set(this.uploadStartTime, file.name, Date.now());
+            let lastLoaded = 0;
+            let lastTime = Date.now();
+
             xhr.upload.addEventListener('progress', (e) => {
                 if (e.lengthComputable) {
                     const progress = Math.round((e.loaded / e.total) * 100);
                     this.$set(this.uploadProgress, file.name, progress);
+
+                    // Вычисляем скорость
+                    const currentTime = Date.now();
+                    const timeDiff = (currentTime - lastTime) / 1000; // в секундах
+
+                    if (timeDiff > 0.1) { // Обновляем скорость каждые 100мс
+                        const bytesDiff = e.loaded - lastLoaded;
+                        const speed = bytesDiff / timeDiff; // байт в секунду
+
+                        this.$set(this.uploadSpeed, file.name, this.formatSpeed(speed));
+
+                        lastLoaded = e.loaded;
+                        lastTime = currentTime;
+                    }
                 }
             });
 
             return new Promise((resolve, reject) => {
                 xhr.addEventListener('load', () => {
                     if (xhr.status === 200) {
+                        // Очищаем данные о скорости после завершения
+                        this.$delete(this.uploadSpeed, file.name);
+                        this.$delete(this.uploadStartTime, file.name);
                         resolve(xhr.response);
                     } else {
                         reject(new Error(`Upload failed: ${xhr.status}`));
@@ -362,6 +386,8 @@ new Vue({
                 });
 
                 xhr.addEventListener('error', () => {
+                    this.$delete(this.uploadSpeed, file.name);
+                    this.$delete(this.uploadStartTime, file.name);
                     reject(new Error('Network error'));
                 });
 
@@ -371,10 +397,24 @@ new Vue({
             });
         },
 
+        formatSpeed(bytesPerSecond) {
+            if (bytesPerSecond < 1024) {
+                return bytesPerSecond.toFixed(0) + ' B/s';
+            } else if (bytesPerSecond < 1024 * 1024) {
+                return (bytesPerSecond / 1024).toFixed(1) + ' KB/s';
+            } else if (bytesPerSecond < 1024 * 1024 * 1024) {
+                return (bytesPerSecond / (1024 * 1024)).toFixed(1) + ' MB/s';
+            } else {
+                return (bytesPerSecond / (1024 * 1024 * 1024)).toFixed(1) + ' GB/s';
+            }
+        },
+
         closeUploadModal() {
             this.showUploadModal = false;
             this.uploadFiles = [];
             this.uploadProgress = {};
+            this.uploadSpeed = {};
+            this.uploadStartTime = {};
             this.dragOver = false;
         },
 
@@ -439,6 +479,34 @@ new Vue({
 
         formatDate(timestamp) {
             return FileHelpers.formatDate(timestamp);
+        },
+
+        calculateTimeRemaining(file) {
+            const progress = this.uploadProgress[file.name] || 0;
+            const startTime = this.uploadStartTime[file.name];
+
+            if (!startTime || progress === 0 || progress === 100) {
+                return '';
+            }
+
+            const elapsedTime = Date.now() - startTime;
+            const totalTime = (elapsedTime / progress) * 100;
+            const remainingTime = totalTime - elapsedTime;
+
+            // Конвертируем в секунды
+            const seconds = Math.ceil(remainingTime / 1000);
+
+            if (seconds < 60) {
+                return `${seconds} сек`;
+            } else if (seconds < 3600) {
+                const minutes = Math.floor(seconds / 60);
+                const sec = seconds % 60;
+                return `${minutes}:${sec.toString().padStart(2, '0')}`;
+            } else {
+                const hours = Math.floor(seconds / 3600);
+                const minutes = Math.floor((seconds % 3600) / 60);
+                return `${hours}ч ${minutes}м`;
+            }
         },
 
         // Delete methods

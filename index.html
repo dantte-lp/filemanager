@@ -47,6 +47,32 @@
             opacity: 0;
         }
 
+        /* Анимация прогресса */
+        @keyframes progress-shine {
+            0% {
+                left: -100%;
+            }
+            100% {
+                left: 100%;
+            }
+        }
+
+        .progress-shine::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+                    90deg,
+                    transparent,
+                    rgba(255, 255, 255, 0.3),
+                    transparent
+            );
+            animation: progress-shine 1.5s infinite;
+        }
+
         /* Scrollbar */
         .scrollbar-thin {
             scrollbar-width: thin;
@@ -371,6 +397,10 @@
                             <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
                                 Загрузка в: {{ currentPath || 'Корневая папка' }}
                             </p>
+                            <div v-if="uploading && Object.keys(uploadSpeed).length > 0" class="mt-2 text-sm text-blue-600 dark:text-blue-400">
+                                <i class="fas fa-cloud-upload-alt mr-1"></i>
+                                Скорость: {{ Object.values(uploadSpeed)[0] }}
+                            </div>
                         </div>
 
                         <!-- Drop Zone -->
@@ -417,73 +447,90 @@
 
                                         <div class="flex-1 min-w-0">
                                             <p class="text-sm font-medium truncate">{{ file.name }}</p>
-                                            <p class="text-xs text-gray-500">{{ formatFileSize(file.size) }}</p>
+                                            <div class="flex items-center gap-4 text-xs text-gray-500">
+                                                <span>{{ formatFileSize(file.size) }}</span>
+                                                <span v-if="uploadSpeed[file.name]" class="text-blue-600 font-medium">
+                                                        <i class="fas fa-tachometer-alt mr-1"></i>{{ uploadSpeed[file.name] }}
+                                                    </span>
+                                            </div>
 
                                             <!-- Progress Bar -->
-                                            <div v-if="uploadProgress[file.name] > 0"
-                                                 class="mt-1 w-full bg-gray-200 dark:bg-gray-600 rounded-full h-1.5">
-                                                <div class="bg-blue-500 h-1.5 rounded-full transition-all duration-300"
-                                                     :style="'width: ' + uploadProgress[file.name] + '%'"></div>
+                                            <div v-if="uploadProgress[file.name] > 0" class="mt-2">
+                                                <div class="flex justify-between items-center mb-1">
+                                                        <span class="text-xs text-gray-500">
+                                                            {{ uploadProgress[file.name] }}%
+                                                        </span>
+                                                    <span v-if="uploadProgress[file.name] < 100" class="text-xs text-gray-500">
+                                                            {{ calculateTimeRemaining(file) }}
+                                                        </span>
+                                                </div>
+                                                <div class="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2 overflow-hidden">
+                                                    <div class="bg-blue-500 h-2 rounded-full transition-all duration-300 relative progress-shine"
+                                                         :style="'width: ' + uploadProgress[file.name] + '%'">
+                                                    </div>
+                                                </div><div class="absolute inset-0 bg-white/20 animate-pulse"></div>
                                             </div>
                                         </div>
-
-                                        <button v-if="!uploading"
-                                                @click="removeUploadFile(index)"
-                                                class="ml-3 p-1 text-red-600 hover:text-red-700">
-                                            <i class="fas fa-times"></i>
-                                        </button>
                                     </div>
                                 </div>
+
+                                <button v-if="!uploading"
+                                        @click="removeUploadFile(index)"
+                                        class="ml-3 p-1 text-red-600 hover:text-red-700">
+                                    <i class="fas fa-times"></i>
+                                </button>
                             </div>
                         </div>
-
-                        <!-- Footer -->
-                        <div class="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-3">
-                            <button @click="closeUploadModal"
-                                    :disabled="uploading"
-                                    class="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors">
-                                Отмена
-                            </button>
-                            <button @click="startUpload"
-                                    :disabled="uploadFiles.length === 0 || uploading"
-                                    class="bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-md transition-colors disabled:opacity-50">
-                                <i v-if="!uploading" class="fas fa-upload mr-2"></i>
-                                <i v-else class="fas fa-spinner fa-spin mr-2"></i>
-                                {{ uploading ? 'Загрузка...' : 'Загрузить' }}
-                            </button>
-                        </div>
                     </div>
-                </transition>
             </div>
-        </transition>
 
-        <!-- Delete Confirmation Modal -->
-        <transition name="fade">
-            <div v-if="showDeleteModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                <transition name="slide-fade">
-                    <div v-if="showDeleteModal" class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 max-w-md w-full">
-                        <h3 class="text-lg font-semibold mb-4">Подтверждение удаления</h3>
-                        <p class="text-gray-600 dark:text-gray-400 mb-6">
-                            Вы уверены, что хотите удалить файл <strong class="text-gray-900 dark:text-gray-100">{{ fileToDelete?.name }}</strong>?
-                        </p>
-                        <div class="flex justify-end gap-3">
-                            <button @click="cancelDelete"
-                                    class="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors">
-                                Отмена
-                            </button>
-                            <button @click="deleteFile"
-                                    :disabled="deleting"
-                                    class="bg-red-500 hover:bg-red-600 text-white font-medium py-2 px-4 rounded-md transition-colors disabled:opacity-50">
-                                <i v-if="!deleting" class="fas fa-trash mr-2"></i>
-                                <i v-else class="fas fa-spinner fa-spin mr-2"></i>
-                                {{ deleting ? 'Удаление...' : 'Удалить' }}
-                            </button>
-                        </div>
-                    </div>
-                </transition>
+            <!-- Footer -->
+            <div class="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-3">
+                <button @click="closeUploadModal"
+                        :disabled="uploading"
+                        class="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors">
+                    Отмена
+                </button>
+                <button @click="startUpload"
+                        :disabled="uploadFiles.length === 0 || uploading"
+                        class="bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-md transition-colors disabled:opacity-50">
+                    <i v-if="!uploading" class="fas fa-upload mr-2"></i>
+                    <i v-else class="fas fa-spinner fa-spin mr-2"></i>
+                    {{ uploading ? 'Загрузка...' : 'Загрузить' }}
+                </button>
+            </div>
+    </div>
+    </transition>
+</div>
+</transition>
+
+<!-- Delete Confirmation Modal -->
+<transition name="fade">
+    <div v-if="showDeleteModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <transition name="slide-fade">
+            <div v-if="showDeleteModal" class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 max-w-md w-full">
+                <h3 class="text-lg font-semibold mb-4">Подтверждение удаления</h3>
+                <p class="text-gray-600 dark:text-gray-400 mb-6">
+                    Вы уверены, что хотите удалить файл <strong class="text-gray-900 dark:text-gray-100">{{ fileToDelete?.name }}</strong>?
+                </p>
+                <div class="flex justify-end gap-3">
+                    <button @click="cancelDelete"
+                            class="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors">
+                        Отмена
+                    </button>
+                    <button @click="deleteFile"
+                            :disabled="deleting"
+                            class="bg-red-500 hover:bg-red-600 text-white font-medium py-2 px-4 rounded-md transition-colors disabled:opacity-50">
+                        <i v-if="!deleting" class="fas fa-trash mr-2"></i>
+                        <i v-else class="fas fa-spinner fa-spin mr-2"></i>
+                        {{ deleting ? 'Удаление...' : 'Удалить' }}
+                    </button>
+                </div>
             </div>
         </transition>
     </div>
+</transition>
+</div>
 </div>
 
 <!-- Scripts -->
