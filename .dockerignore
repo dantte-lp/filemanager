@@ -1,0 +1,41 @@
+# Git
+.git
+.gitignore
+
+# Документация
+README.md
+LICENSE
+*.md
+
+# Логи
+logs/
+*.log
+
+# Временные файлы
+*.tmp
+*.temp
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Данные (монтируются как volume)
+data/
+backups/
+
+# Конфигурация (монтируется как volume)
+config/users.php
+
+# Docker файлы (не нужны внутри контейнера)
+Dockerfile
+docker-compose.yml
+docker-compose.*.yml
+.dockerignore
+
+# Тестовые файлы
+test-*
+*-test.*
+user_hash.txt

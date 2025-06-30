@@ -1,0 +1,79 @@
+version: '3.8'
+
+services:
+  filemanager:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: filemanager
+    restart: unless-stopped
+    ports:
+      - "8080:80"  # Измените на нужный порт
+    volumes:
+      # Папка с файлами - доступна для чтения и записи
+      - ./data:/data:rw
+      # Конфигурация пользователей - сохраняется между перезапусками
+      - ./config:/var/www/fileserver/config:rw
+      # Логи (опционально)
+      - ./logs/nginx:/var/log/nginx:rw
+      - ./logs/php:/var/log/php:rw
+    environment:
+      # Настройки PHP
+      - PHP_MEMORY_LIMIT=256M
+      - PHP_MAX_UPLOAD=100M
+      - PHP_MAX_POST=100M
+      - PHP_MAX_EXECUTION_TIME=300
+      # Настройки приложения
+      - APP_ENV=production
+      - APP_DEBUG=false
+    networks:
+      - filemanager-network
+    # Проверка здоровья
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/api.php?action=test"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Опциональный контейнер для бэкапов
+  backup:
+    image: alpine:latest
+    container_name: filemanager-backup
+    volumes:
+      - ./data:/data:ro
+      - ./backups:/backups:rw
+    command: >
+      sh -c "while true; do
+        echo 'Backup service ready. Run: docker exec filemanager-backup /backup.sh';
+        sleep 86400;
+      done"
+    networks:
+      - filemanager-network
+    profiles:
+      - backup
+
+networks:
+  filemanager-network:
+    driver: bridge
+
+# Примеры использования:
+#
+# 1. Запуск:
+#    docker-compose up -d
+#
+# 2. Остановка:
+#    docker-compose down
+#
+# 3. Просмотр логов:
+#    docker-compose logs -f
+#
+# 4. Перезапуск:
+#    docker-compose restart
+#
+# 5. Запуск с бэкапом:
+#    docker-compose --profile backup up -d
+#
+# 6. Обновление после изменений:
+#    docker-compose build --no-cache
+#    docker-compose up -d
