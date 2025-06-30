@@ -129,6 +129,11 @@ new Vue({
     },
 
     methods: {
+        // Helper method для проверки прав
+        hasPermission(permission) {
+            return this.currentUser?.permissions?.[permission] === true;
+        },
+
         // Auth methods
         async handleLogin() {
             if (!this.loginForm.username || !this.loginForm.password) return;

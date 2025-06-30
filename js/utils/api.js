@@ -96,7 +96,17 @@ window.API = {
 
                 if (response.ok) {
                     const username = atob(token).split(':')[0];
-                    return { username, name: username };
+                    return {
+                        username,
+                        name: username,
+                        role: 'user',  // По умолчанию для Basic auth
+                        permissions: {
+                            view: true,
+                            download: true,
+                            upload: true,
+                            delete: false
+                        }
+                    };
                 }
             } else {
                 // Новый формат
@@ -114,7 +124,17 @@ window.API = {
                     });
 
                     if (listResponse.ok) {
-                        return { username: 'user', name: 'User' };
+                        return {
+                            username: 'user',
+                            name: 'User',
+                            role: 'user',
+                            permissions: {
+                                view: true,
+                                download: true,
+                                upload: true,
+                                delete: false
+                            }
+                        };
                     }
                 }
             }

@@ -145,9 +145,10 @@
                 <div class="flex justify-between items-center h-16">
                     <h1 class="text-xl font-light">Файловый менеджер</h1>
                     <div class="flex items-center space-x-4">
-                            <span class="text-sm text-gray-600 dark:text-gray-400">
-                                {{ currentUser.name || currentUser.username }}
-                            </span>
+                        <div class="text-sm text-gray-600 dark:text-gray-400">
+                            <div>{{ currentUser.name || currentUser.username }}</div>
+                            <div class="text-xs text-gray-500 dark:text-gray-500">{{ currentUser.role === 'admin' ? 'Администратор' : 'Пользователь' }}</div>
+                        </div>
                         <button @click="toggleTheme"
                                 class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                                 title="Переключить тему">
@@ -219,7 +220,7 @@
 
                     <!-- Actions -->
                     <div class="flex gap-2 ml-auto">
-                        <button v-if="currentPath"
+                        <button v-if="currentPath && hasPermission('upload')"
                                 @click="showUploadModal = true"
                                 class="p-2 bg-green-500 hover:bg-green-600 text-white rounded-md transition-colors"
                                 title="Загрузить файлы">
@@ -308,7 +309,8 @@
                                             title="Копировать ссылку">
                                         <i class="fas fa-link text-sm"></i>
                                     </button>
-                                    <button @click.stop="confirmDelete(file)"
+                                    <button v-if="hasPermission('delete')"
+                                            @click.stop="confirmDelete(file)"
                                             class="p-1 text-red-400 hover:text-red-600 dark:hover:text-red-500 transition-colors"
                                             title="Удалить файл">
                                         <i class="fas fa-trash text-sm"></i>
@@ -340,7 +342,8 @@
                                 title="Копировать ссылку">
                             <i class="fas fa-link text-sm"></i>
                         </button>
-                        <button @click.stop="confirmDelete(file)"
+                        <button v-if="hasPermission('delete')"
+                                @click.stop="confirmDelete(file)"
                                 class="p-1 text-red-400 hover:text-red-600 dark:hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
                                 title="Удалить файл">
                             <i class="fas fa-trash text-sm"></i>

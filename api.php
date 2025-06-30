@@ -51,6 +51,7 @@ $config = [
     'session_dir' => '/tmp/filemanager_sessions',
     'session_lifetime' => 3600, // 1 hour
     'users' => $userConfig['users'] ?? [],
+    'permissions' => $userConfig['permissions'] ?? [],
     'max_upload_size' => 104857600, // 100MB
     'allowed_upload_extensions' => [] // Empty = all allowed
 ];
@@ -107,31 +108,56 @@ function handleNewApiRequest($apiPath, $method) {
                 $username = $input['username'];
                 $password = $input['password'];
 
-                if (isset($config['users'][$username]) &&
-                    password_verify($password, $config['users'][$username])) {
+                if (isset($config['users'][$username])) {
+                    $userInfo = $config['users'][$username];
 
-                    // Генерируем токен
-                    $token = bin2hex(random_bytes(32));
+                    // Поддержка старого формата (строка) и нового (массив)
+                    if (is_string($userInfo)) {
+                        // Старый формат - все пользователи считаются user
+                        $passwordHash = $userInfo;
+                        $role = 'user';
+                    } else {
+                        // Новый формат с ролями
+                        $passwordHash = $userInfo['password'];
+                        $role = $userInfo['role'] ?? 'user';
+                    }
 
-                    // Сохраняем сессию
-                    $sessionData = [
-                        'token' => $token,
-                        'username' => $username,
-                        'expires' => time() + $config['session_lifetime'],
-                        'ip' => $_SERVER['REMOTE_ADDR'] ?? ''
-                    ];
+                    if (password_verify($password, $passwordHash)) {
+                        // Генерируем токен
+                        $token = bin2hex(random_bytes(32));
 
-                    $sessionFile = $config['session_dir'] . '/' . $token . '.json';
-                    file_put_contents($sessionFile, json_encode($sessionData));
-
-                    echo json_encode([
-                        'success' => true,
-                        'token' => $token,
-                        'user' => [
+                        // Сохраняем сессию с ролью
+                        $sessionData = [
+                            'token' => $token,
                             'username' => $username,
-                            'name' => ucfirst($username)
-                        ]
-                    ]);
+                            'role' => $role,
+                            'expires' => time() + $config['session_lifetime'],
+                            'ip' => $_SERVER['REMOTE_ADDR'] ?? ''
+                        ];
+
+                        $sessionFile = $config['session_dir'] . '/' . $token . '.json';
+                        file_put_contents($sessionFile, json_encode($sessionData));
+
+                        // Получаем права для роли
+                        $permissions = $config['permissions'][$role] ?? [];
+
+                        echo json_encode([
+                            'success' => true,
+                            'token' => $token,
+                            'user' => [
+                                'username' => $username,
+                                'name' => ucfirst($username),
+                                'role' => $role,
+                                'permissions' => $permissions
+                            ]
+                        ]);
+                    } else {
+                        http_response_code(401);
+                        echo json_encode([
+                            'error' => 'Invalid credentials',
+                            'message' => 'Неверный логин или пароль'
+                        ]);
+                    }
                 } else {
                     http_response_code(401);
                     echo json_encode([
@@ -150,10 +176,17 @@ function handleNewApiRequest($apiPath, $method) {
                 }
 
                 $sessionData = getSessionData($token);
+
+                // Получаем роль и права
+                $role = $sessionData['role'] ?? 'user';
+                $permissions = $config['permissions'][$role] ?? [];
+
                 echo json_encode([
                     'user' => [
                         'username' => $sessionData['username'],
-                        'name' => ucfirst($sessionData['username'])
+                        'name' => ucfirst($sessionData['username']),
+                        'role' => $role,
+                        'permissions' => $permissions
                     ]
                 ]);
                 break;
@@ -162,7 +195,7 @@ function handleNewApiRequest($apiPath, $method) {
                 if ($method !== 'POST') {
                     throw new Exception('Method not allowed', 405);
                 }
-                checkAuth();
+                checkPermission('upload');
                 handleUpload();
                 break;
 
@@ -183,13 +216,17 @@ function handleOldApiRequest() {
 
     $action = $_GET['action'] ?? 'list';
 
-    // Для action=get не проверяем авторизацию
+    // Для action=get и cleanup не проверяем авторизацию
     if ($action !== 'get' && $action !== 'cleanup') {
-        checkAuth();
+        // Для остальных действий проверяем базовую авторизацию
+        if ($action === 'list' || $action === 'download') {
+            checkPermission('view');
+        }
     }
 
     switch ($action) {
         case 'list':
+            checkPermission('view');
             $requestedDir = $_GET['dir'] ?? '';
             $requestedDir = trim($requestedDir, '/');
             $requestedDir = str_replace('..', '', $requestedDir);
@@ -204,6 +241,7 @@ function handleOldApiRequest() {
             break;
 
         case 'download':
+            checkPermission('download');
             $file = $_GET['file'] ?? '';
             if (!$file) {
                 http_response_code(400);
@@ -251,6 +289,7 @@ function handleOldApiRequest() {
             break;
 
         case 'delete':
+            checkPermission('delete');
             $file = $_GET['file'] ?? '';
             if (!$file) {
                 http_response_code(400);
@@ -313,9 +352,25 @@ function checkAuth() {
         if (strpos($credentials, ':') !== false) {
             list($username, $password) = explode(':', $credentials, 2);
 
-            if (isset($config['users'][$username]) &&
-                password_verify($password, $config['users'][$username])) {
-                return true;
+            if (isset($config['users'][$username])) {
+                $userInfo = $config['users'][$username];
+
+                // Поддержка старого и нового формата
+                if (is_string($userInfo)) {
+                    $passwordHash = $userInfo;
+                    $role = 'user';
+                } else {
+                    $passwordHash = $userInfo['password'];
+                    $role = $userInfo['role'] ?? 'user';
+                }
+
+                if (password_verify($password, $passwordHash)) {
+                    return [
+                        'username' => $username,
+                        'role' => $role,
+                        'permissions' => $config['permissions'][$role] ?? []
+                    ];
+                }
             }
         }
     }
@@ -324,12 +379,31 @@ function checkAuth() {
     if ($authHeader && strpos($authHeader, 'Bearer ') === 0) {
         $token = substr($authHeader, 7);
         if (validateToken($token)) {
-            return true;
+            $sessionData = getSessionData($token);
+            $role = $sessionData['role'] ?? 'user';
+
+            return [
+                'username' => $sessionData['username'],
+                'role' => $role,
+                'permissions' => $config['permissions'][$role] ?? []
+            ];
         }
     }
 
     http_response_code(401);
     die(json_encode(['error' => 'Authorization required']));
+}
+
+// Проверка конкретного разрешения
+function checkPermission($permission) {
+    $user = checkAuth();
+
+    if (!isset($user['permissions'][$permission]) || !$user['permissions'][$permission]) {
+        http_response_code(403);
+        die(json_encode(['error' => 'Permission denied', 'message' => 'У вас нет прав для выполнения этого действия']));
+    }
+
+    return $user;
 }
 
 // Получение Bearer токена
@@ -581,6 +655,9 @@ function cleanupSessions() {
 // Обработка загрузки файлов
 function handleUpload() {
     global $config;
+
+    // Дополнительная проверка прав (уже проверено, но для безопасности)
+    checkPermission('upload');
 
     if (!isset($_FILES['file'])) {
         http_response_code(400);
