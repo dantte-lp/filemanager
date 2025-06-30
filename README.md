@@ -49,7 +49,7 @@
 #### Клонирование репозитория
 ```bash
 cd /var/www
-git clone https://github.com/your-repo/filemanager.git fileserver
+git clone https://github.com/dantte-lp/filemanager.git fileserver
 cd fileserver
 ```
 
@@ -100,7 +100,7 @@ vim config/users.php
 #### Использование Docker Compose (рекомендуется)
 ```bash
 # Клонируйте репозиторий
-git clone https://github.com/your-repo/filemanager.git
+git clone https://github.com/dantte-lp/filemanager.git
 cd filemanager
 
 # Создайте директорию для данных
