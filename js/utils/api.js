@@ -1,6 +1,6 @@
-// js/utils/api.js - API утилиты
+// js/utils/api.js - API утилиты (ES6 модуль)
 
-window.API = {
+export const API = {
     baseUrl: '/api',
     oldApiUrl: '/api.php',
 
@@ -66,7 +66,14 @@ window.API = {
                     token: basicToken,
                     user: {
                         username: credentials.username,
-                        name: credentials.username
+                        name: credentials.username,
+                        role: 'user',
+                        permissions: {
+                            view: true,
+                            download: true,
+                            upload: true,
+                            delete: false
+                        }
                     }
                 };
             } else if (response.status === 401) {
@@ -99,7 +106,7 @@ window.API = {
                     return {
                         username,
                         name: username,
-                        role: 'user',  // По умолчанию для Basic auth
+                        role: 'user',
                         permissions: {
                             view: true,
                             download: true,
@@ -209,3 +216,6 @@ window.API = {
         return await response.json();
     }
 };
+
+// Также экспортируем в глобальную область для обратной совместимости
+window.API = API;

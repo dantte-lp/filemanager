@@ -1,65 +1,81 @@
 // js/app.js - Основное Vue приложение
 
+// Проверяем, что Vue загружен
+if (typeof Vue === 'undefined') {
+    console.error('Vue.js не загружен!');
+    alert('Ошибка загрузки приложения. Попробуйте обновить страницу.');
+}
+
+// Проверяем, что все утилиты загружены
+if (typeof API === 'undefined' || typeof Storage === 'undefined' || typeof FileHelpers === 'undefined') {
+    console.error('Не все модули загружены!');
+    console.log('API:', typeof API);
+    console.log('Storage:', typeof Storage);
+    console.log('FileHelpers:', typeof FileHelpers);
+}
+
 new Vue({
     el: '#app',
 
-    data: {
-        // Auth
-        showAuthModal: true,
-        authError: '',
-        authLoading: false,
-        currentUser: null,
-        loginForm: {
-            username: '',
-            password: ''
-        },
+    data() {
+        return {
+            // Auth
+            showAuthModal: true,
+            authError: '',
+            authLoading: false,
+            currentUser: null,
+            loginForm: {
+                username: '',
+                password: ''
+            },
 
-        // Toast
-        toast: {
-            show: false,
-            message: '',
-            type: 'success'
-        },
+            // Toast
+            toast: {
+                show: false,
+                message: '',
+                type: 'success'
+            },
 
-        // Files
-        loading: false,
-        currentPath: '',
-        allFiles: [],
-        breadcrumb: [],
+            // Files
+            loading: false,
+            currentPath: '',
+            allFiles: [],
+            breadcrumb: [],
 
-        // Filters
-        filters: {
-            searchQuery: '',
-            sortBy: 'name',
-            sortReverse: false,
-            viewMode: 'list',
-            currentFilter: 'all'
-        },
+            // Filters
+            filters: {
+                searchQuery: '',
+                sortBy: 'name',
+                sortReverse: false,
+                viewMode: 'list',
+                currentFilter: 'all'
+            },
 
-        filterOptions: [
-            { value: 'all', label: 'Все', icon: '📁' },
-            { value: 'image', label: 'Изображения', icon: '🖼️' },
-            { value: 'document', label: 'Документы', icon: '📄' },
-            { value: 'archive', label: 'Архивы', icon: '📦' },
-            { value: 'disk', label: 'Образы дисков', icon: '💿' }
-        ],
+            filterOptions: [
+                { value: 'all', label: 'Все', icon: '📁' },
+                { value: 'image', label: 'Изображения', icon: '🖼️' },
+                { value: 'document', label: 'Документы', icon: '📄' },
+                { value: 'archive', label: 'Архивы', icon: '📦' },
+                { value: 'disk', label: 'Образы дисков', icon: '💿' }
+            ],
 
-        // Upload
-        showUploadModal: false,
-        uploadFiles: [],
-        uploadProgress: {},
-        uploadSpeed: {},
-        uploadStartTime: {},
-        uploading: false,
-        dragOver: false,
+            // Upload
+            showUploadModal: false,
+            uploadFiles: [],
+            uploadProgress: {},
+            uploadSpeed: {},
+            uploadStartTime: {},
+            uploading: false,
+            dragOver: false,
 
-        // Theme
-        isDark: false,
+            // Theme
+            isDark: false,
 
-        // Delete
-        showDeleteModal: false,
-        fileToDelete: null,
-        deleting: false
+            // Delete
+            showDeleteModal: false,
+            fileToDelete: null,
+            deleting: false
+        }
     },
 
     computed: {
@@ -542,12 +558,26 @@ new Vue({
     },
 
     mounted() {
+        console.log('App mounted');
+        console.log('Initial state:', {
+            showAuthModal: this.showAuthModal,
+            showDeleteModal: this.showDeleteModal,
+            showUploadModal: this.showUploadModal,
+            currentUser: this.currentUser
+        });
+
+        // Принудительно устанавливаем правильное состояние
+        this.showAuthModal = true;
+        this.showDeleteModal = false;
+        this.showUploadModal = false;
+        this.fileToDelete = null;
+
         this.initTheme();
         this.checkAuth();
 
         // Focus на поле username при открытии
         this.$nextTick(() => {
-            if (this.$refs.usernameInput) {
+            if (this.$refs.usernameInput && this.showAuthModal) {
                 this.$refs.usernameInput.focus();
             }
         });
