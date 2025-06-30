@@ -42,7 +42,7 @@ window.FileHelpers = {
         document: ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'odt', 'ods', 'odp', 'rtf'],
         archive: ['zip', 'rar', '7z', 'tar', 'gz', 'bz2', 'xz', 'tar.gz', 'tar.bz2', 'tar.xz'],
         code: ['js', 'ts', 'jsx', 'tsx', 'php', 'py', 'java', 'cpp', 'c', 'h', 'cs', 'css', 'html', 'json', 'xml', 'yml', 'yaml', 'sh', 'bash'],
-        disk: ['iso', 'img', 'dmg', 'vhd', 'vhdx', 'vmdk', 'vdi', 'qcow2', 'raw'],
+        disk: ['iso', 'img', 'dmg', 'vhd', 'vhdx', 'vmdk', 'vdi', 'qcow2', 'raw', 'qcow', 'qed', 'ovf', 'ova', 'vbox-extpack', 'nvram', 'vmx', 'vmsd', 'vmsn', 'vmss'],
         video: ['mp4', 'avi', 'mkv', 'mov', 'wmv', 'flv', 'webm', 'm4v', 'mpg', 'mpeg', '3gp'],
         audio: ['mp3', 'wav', 'flac', 'aac', 'ogg', 'wma', 'm4a', 'opus', 'ape']
     },

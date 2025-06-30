@@ -77,18 +77,10 @@ new Vue({
                 files = files.filter(file => {
                     if (file.type === 'directory') return true;
 
-                    switch (this.filters.currentFilter) {
-                        case 'image':
-                            return ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'svg', 'webp', 'ico'].includes(file.extension);
-                        case 'document':
-                            return ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'odt', 'ods', 'odp'].includes(file.extension);
-                        case 'archive':
-                            return ['zip', 'rar', '7z', 'tar', 'gz', 'bz2', 'xz'].includes(file.extension);
-                        case 'disk':
-                            return ['iso', 'img', 'dmg', 'vhd', 'vhdx', 'vmdk'].includes(file.extension);
-                        default:
-                            return false;
-                    }
+                    const filterExtensions = FileHelpers.categories[this.filters.currentFilter];
+                    if (!filterExtensions) return false;
+
+                    return filterExtensions.includes(file.extension);
                 });
             }
 
