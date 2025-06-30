@@ -1,0 +1,200 @@
+/* css/components.css - Стили для компонентов */
+
+/* Toolbar оптимизация */
+.toolbar-compact {
+    min-height: 48px;
+}
+
+@media (max-width: 768px) {
+    /* На мобильных устройствах скрываем текст фильтров */
+    .filter-mobile-icon {
+        font-size: 1rem;
+    }
+}
+
+/* Компактные кнопки */
+.btn-compact {
+    padding: 0.375rem 0.75rem;
+    font-size: 0.875rem;
+}
+
+/* Компактный поиск */
+.search-compact {
+    max-width: 300px;
+}
+
+/* Toast Notifications */
+.toast-notification {
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+}
+
+/* File Icons Hover Effects */
+.file-grid-item:hover .file-icon {
+    transform: scale(1.1);
+}
+
+/* Breadcrumb Styles */
+.breadcrumb-item {
+    position: relative;
+}
+
+.breadcrumb-item::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    width: 0;
+    height: 2px;
+    background-color: #3b82f6;
+    transition: width 0.3s ease;
+}
+
+.breadcrumb-item:hover::after {
+    width: 100%;
+}
+
+/* Filter Pills */
+.filter-pill {
+    transition: all 0.2s ease;
+}
+
+.filter-pill:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Table Row Hover */
+.file-table-row {
+    transition: all 0.2s ease;
+}
+
+.file-table-row:hover {
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+/* Copy Link Button */
+.copy-link-button {
+    transition: all 0.2s ease;
+}
+
+.copy-link-button.success {
+    color: #10b981;
+}
+
+/* Loading Overlay */
+.loading-overlay {
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(2px);
+}
+
+.dark .loading-overlay {
+    background: rgba(0, 0, 0, 0.9);
+}
+
+/* Custom Scrollbar for File List */
+.file-list-container {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
+}
+
+.file-list-container::-webkit-scrollbar {
+    width: 8px;
+}
+
+.file-list-container::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.file-list-container::-webkit-scrollbar-thumb {
+    background-color: rgba(156, 163, 175, 0.5);
+    border-radius: 4px;
+}
+
+.dark .file-list-container::-webkit-scrollbar-thumb {
+    background-color: rgba(75, 85, 99, 0.5);
+}
+
+/* Auth Modal */
+.auth-modal-content {
+    animation: modalSlideIn 0.3s ease;
+}
+
+@keyframes modalSlideIn {
+    from {
+        transform: translateY(-20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* Grid View Card Effects */
+.file-grid-card {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.file-grid-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+/* Dark mode specific styles */
+.dark .file-grid-card:hover {
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.2);
+}
+
+/* Search Input Focus Effect */
+.search-input:focus {
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* Button Press Effect */
+.btn-press {
+    transition: all 0.1s ease;
+}
+
+.btn-press:active {
+    transform: scale(0.98);
+}
+
+/* File Type Badge */
+.file-type-badge {
+    font-size: 0.75rem;
+    padding: 0.125rem 0.5rem;
+    border-radius: 9999px;
+    background-color: rgba(156, 163, 175, 0.1);
+    color: rgba(156, 163, 175, 1);
+}
+
+/* Progress Bar Animation */
+.progress-bar {
+    position: relative;
+    overflow: hidden;
+}
+
+.progress-bar::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 255, 255, 0.3),
+        transparent
+    );
+    animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+    0% {
+        transform: translateX(-100%);
+    }
+    100% {
+        transform: translateX(100%);
+    }
+}

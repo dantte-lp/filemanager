@@ -1,0 +1,89 @@
+/* css/transitions.css - Анимации для Vue transitions */
+
+/* Fade transition */
+.fade-enter-active, 
+.fade-leave-active {
+    transition: opacity 0.3s ease;
+}
+
+.fade-enter, 
+.fade-leave-to {
+    opacity: 0;
+}
+
+/* Slide fade transition */
+.slide-fade-enter-active {
+    transition: all 0.3s ease;
+}
+
+.slide-fade-leave-active {
+    transition: all 0.2s ease;
+}
+
+.slide-fade-enter {
+    transform: translateY(-10px);
+    opacity: 0;
+}
+
+.slide-fade-leave-to {
+    transform: translateY(10px);
+    opacity: 0;
+}
+
+/* Scale transition */
+.scale-enter-active,
+.scale-leave-active {
+    transition: all 0.2s ease;
+}
+
+.scale-enter {
+    transform: scale(0.9);
+    opacity: 0;
+}
+
+.scale-leave-to {
+    transform: scale(0.9);
+    opacity: 0;
+}
+
+/* List transition */
+.list-enter-active,
+.list-leave-active,
+.list-move {
+    transition: all 0.3s ease;
+}
+
+.list-enter {
+    opacity: 0;
+    transform: translateX(-30px);
+}
+
+.list-leave-to {
+    opacity: 0;
+    transform: translateX(30px);
+}
+
+.list-leave-active {
+    position: absolute;
+}
+
+/* Bounce transition */
+.bounce-enter-active {
+    animation: bounce-in 0.5s;
+}
+
+.bounce-leave-active {
+    animation: bounce-in 0.5s reverse;
+}
+
+@keyframes bounce-in {
+    0% {
+        transform: scale(0);
+    }
+    50% {
+        transform: scale(1.2);
+    }
+    100% {
+        transform: scale(1);
+    }
+}

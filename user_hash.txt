@@ -1,0 +1,2 @@
+// Сгенерировано: 2025-06-30 16:23:37
+'admin' => '$2y$12$Elsi1rokZ8YvrS7z2phHCuo7/cga8Gwn6SQkI0bmi4yImOiWDSW1u',

@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="ru" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Файловый менеджер</title>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    
+    <!-- Vue.js -->
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
+    
+    <!-- Tailwind CSS v3 (стабильная версия с рабочим dark mode) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Font Awesome для иконок (последняя версия 6.7.1) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.1/css/all.min.css">
+    
+    <!-- Стили приложения -->
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/transitions.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/theme-fix.css">
+    <link rel="stylesheet" href="css/tailwind-dark-mode.css">
+    
+    <!-- Tailwind конфигурация -->
+    <script>
+        // Временное решение пока не работает CDN
+        if (typeof tailwind !== 'undefined') {
+            tailwind.config = {
+                darkMode: 'class',
+                theme: {
+                    extend: {
+                        animation: {
+                            'spin': 'spin 1s linear infinite',
+                            'fade-in': 'fadeIn 0.2s ease-in-out',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors duration-200">
+    <div id="app" v-cloak>
+        <!-- Toast Notification Component -->
+        <toast-notification 
+            v-if="toast.show"
+            :message="toast.message"
+            :type="toast.type"
+            @close="closeToast"
+        ></toast-notification>
+
+        <!-- Auth Modal Component -->
+        <auth-modal 
+            v-if="showAuthModal"
+            :error="authError"
+            :loading="authLoading"
+            @login="handleLogin"
+            @clear-error="authError = ''"
+        ></auth-modal>
+
+        <!-- Main File Manager Component -->
+        <file-manager 
+            v-if="!showAuthModal"
+            :user="currentUser"
+            @logout="handleLogout"
+        ></file-manager>
+    </div>
+
+    <!-- Templates Components -->
+    
+    <!-- Toast Notification Template -->
+    <script type="text/x-template" id="toast-notification-template">
+        <transition name="slide-fade">
+            <div :class="[
+                     'fixed top-4 right-4 z-50 text-white px-6 py-3 rounded-lg shadow-lg flex items-center space-x-2',
+                     type === 'error' ? 'bg-red-500' : 
+                     type === 'info' ? 'bg-blue-500' : 'bg-green-500'
+                 ]">
+                <i :class="[
+                    'fas',
+                    type === 'error' ? 'fa-exclamation-circle' : 
+                    type === 'info' ? 'fa-info-circle' : 'fa-check-circle'
+                ]"></i>
+                <span>{{ message }}</span>
+                <button @click="$emit('close')" class="ml-2 hover:opacity-80">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </transition>
+    </script>
+
+    <!-- Auth Modal Template -->
+    <script type="text/x-template" id="auth-modal-template">
+        <transition name="fade">
+            <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                <transition name="slide-fade">
+                    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-md">
+                        <h2 class="text-2xl font-light mb-6 text-center">Авторизация</h2>
+                        
+                        <div v-if="error" 
+                             class="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+                            {{ error }}
+                        </div>
+                        
+                        <form @submit.prevent="submitLogin">
+                            <div class="mb-4">
+                                <label class="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
+                                    Имя пользователя
+                                </label>
+                                <input type="text" 
+                                       v-model="credentials.username" 
+                                       @input="$emit('clear-error')"
+                                       required
+                                       ref="usernameInput"
+                                       class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700">
+                            </div>
+                            <div class="mb-6">
+                                <label class="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
+                                    Пароль
+                                </label>
+                                <input type="password" 
+                                       v-model="credentials.password" 
+                                       @input="$emit('clear-error')"
+                                       required
+                                       class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700">
+                            </div>
+                            <button type="submit" 
+                                    :disabled="loading"
+                                    class="w-full bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-md transition-colors duration-200 disabled:opacity-50">
+                                <span v-if="!loading">Войти</span>
+                                <span v-else>
+                                    <i class="fas fa-spinner fa-spin mr-2"></i>
+                                    Вход...
+                                </span>
+                            </button>
+                        </form>
+                    </div>
+                </transition>
+            </div>
+        </transition>
+    </script>
+
+    <!-- File Manager Template -->
+    <script type="text/x-template" id="file-manager-template">
+        <div class="min-h-screen">
+            <!-- Header Component -->
+            <file-manager-header 
+                :user="user"
+                @toggle-theme="toggleTheme"
+                @logout="$emit('logout')"
+            ></file-manager-header>
+
+            <!-- Toolbar Component -->
+            <file-manager-toolbar
+                v-model="filters"
+                @refresh="refreshFiles"
+                @go-home="navigateHome"
+                @search-mode-change="handleSearchModeChange"
+            ></file-manager-toolbar>
+
+            <!-- Breadcrumb Component -->
+            <file-breadcrumb
+                :items="breadcrumb"
+                @navigate="loadFiles"
+            ></file-breadcrumb>
+
+            <!-- Content Area -->
+            <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+                <!-- Loading State -->
+                <loading-spinner v-if="loading"></loading-spinner>
+
+                <!-- Empty State -->
+                <empty-state 
+                    v-if="!loading && filteredFiles.length === 0"
+                    message="Папка пуста"
+                ></empty-state>
+
+                <!-- File List View -->
+                <file-list-view
+                    v-if="!loading && filters.viewMode === 'list' && filteredFiles.length > 0"
+                    :files="filteredFiles"
+                    @file-click="handleFileClick"
+                    @copy-link="copyDownloadLink"
+                ></file-list-view>
+
+                <!-- File Grid View -->
+                <file-grid-view
+                    v-if="!loading && filters.viewMode === 'grid' && filteredFiles.length > 0"
+                    :files="filteredFiles"
+                    @file-click="handleFileClick"
+                    @copy-link="copyDownloadLink"
+                ></file-grid-view>
+            </main>
+
+            <!-- Download Progress Component -->
+            <download-progress
+                v-if="downloading"
+                :progress="downloadProgress"
+                @close="downloading = false"
+            ></download-progress>
+        </div>
+    </script>
+
+    <!-- Load JavaScript modules -->
+    <script src="js/utils/theme-state.js"></script>
+    <script src="js/utils/api.js"></script>
+    <script src="js/utils/file-helpers.js"></script>
+    <script src="js/utils/storage.js"></script>
+    <script src="js/utils/theme-debug.js"></script>
+    
+    <!-- Load Vue components -->
+    <script src="js/components/common/toast-notification.js"></script>
+    <script src="js/components/common/loading-spinner.js"></script>
+    <script src="js/components/common/empty-state.js"></script>
+    
+    <script src="js/components/auth/auth-modal.js"></script>
+    
+    <script src="js/components/file-manager/file-manager-header.js"></script>
+    <script src="js/components/file-manager/file-manager-toolbar.js"></script>
+    <script src="js/components/file-manager/file-breadcrumb.js"></script>
+    <script src="js/components/file-manager/file-list-view.js"></script>
+    <script src="js/components/file-manager/file-grid-view.js"></script>
+    <script src="js/components/file-manager/download-progress.js"></script>
+    <script src="js/components/file-manager/upload-modal.js"></script>
+    <script src="js/components/file-manager/file-manager.js"></script>
+    
+    <!-- Main app -->
+    <script src="js/app.js"></script>
+</body>
+</html>
