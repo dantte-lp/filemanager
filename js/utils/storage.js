@@ -1,6 +1,6 @@
-// js/utils/storage.js - Утилиты для работы с localStorage (ES6 модуль)
+// js/utils/storage.js - Утилиты для работы с localStorage
 
-export const Storage = {
+window.Storage = {
     keys: {
         token: 'filemanager_authToken',
         theme: 'filemanager_theme',
@@ -93,6 +93,3 @@ export const Storage = {
         }
     }
 };
-
-// Также экспортируем в глобальную область для обратной совместимости
-window.Storage = Storage;

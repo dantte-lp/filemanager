@@ -1,6 +1,6 @@
-// js/utils/api.js - API утилиты (ES6 модуль)
+// js/utils/api.js - API утилиты
 
-export const API = {
+window.API = {
     baseUrl: '/api',
     oldApiUrl: '/api.php',
 
@@ -216,6 +216,3 @@ export const API = {
         return await response.json();
     }
 };
-
-// Также экспортируем в глобальную область для обратной совместимости
-window.API = API;

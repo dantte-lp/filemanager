@@ -1,6 +1,6 @@
-// js/utils/file-helpers.js - Вспомогательные функции для файлов (ES6 модуль)
+// js/utils/file-helpers.js - Вспомогательные функции для файлов
 
-export const FileHelpers = {
+window.FileHelpers = {
     // Иконки для типов файлов
     icons: {
         directory: 'fas fa-folder',
@@ -232,6 +232,3 @@ export const FileHelpers = {
         return mimeTypes[extension?.toLowerCase()] || 'application/octet-stream';
     }
 };
-
-// Также экспортируем в глобальную область для обратной совместимости
-window.FileHelpers = FileHelpers;

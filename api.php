@@ -1,19 +1,4 @@
-// Обработка загрузки файлов
-function handleUpload() {
-    global $config;
-
-    // Логирование для отладки
-    error_log("Upload request received");
-    error_log("POST data: " . print_r($_POST, true));
-    error_log("FILES data: " . print_r($_FILES, true));
-    error_log("Content-Type: " . ($_SERVER['CONTENT_TYPE'] ?? 'not set'));
-    error_log("Content-Length: " . ($_SERVER['CONTENT_LENGTH'] ?? 'not set'));
-
-    // Дополнительная проверка прав (уже проверено, но для безопасности)
-    checkPermission('upload');
-
-    if (!isset($_FILES['file'])) {
-        error_log("No file<?php
+<?php
 // api.php - Универсальный API для файлового менеджера
 
 // Настройки для больших файлов
@@ -94,6 +79,7 @@ if (!is_readable($config['root_dir'])) {
 if (!is_dir($config['session_dir'])) {
     mkdir($config['session_dir'], 0777, true);
 }
+
 
 // Определяем тип запроса (старый API или новый)
 $requestUri = $_SERVER['REQUEST_URI'] ?? '';

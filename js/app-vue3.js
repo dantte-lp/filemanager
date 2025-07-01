@@ -365,9 +365,6 @@ createApp({
             let lastLoaded = 0;
             let lastTime = Date.now();
 
-            // Настройки для больших файлов
-            xhr.timeout = 0; // Отключаем таймаут
-
             xhr.upload.addEventListener('progress', (e) => {
                 if (e.lengthComputable) {
                     const progress = Math.round((e.loaded / e.total) * 100);
@@ -388,36 +385,14 @@ createApp({
                 }
             });
 
-            // Обработка ошибок
-            xhr.upload.addEventListener('error', (e) => {
-                console.error('Upload error event:', e);
-            });
-
-            xhr.upload.addEventListener('abort', (e) => {
-                console.error('Upload aborted:', e);
-            });
-
             return new Promise((resolve, reject) => {
                 xhr.addEventListener('load', () => {
-                    console.log('Upload response status:', xhr.status);
-                    console.log('Upload response:', xhr.responseText);
-
                     if (xhr.status === 200) {
                         delete uploadSpeed[file.name];
                         delete uploadStartTime[file.name];
                         resolve(xhr.response);
                     } else {
-                        let errorMessage = `Upload failed: ${xhr.status} ${xhr.statusText}`;
-                        try {
-                            const response = JSON.parse(xhr.responseText);
-                            errorMessage = response.error || errorMessage;
-                            if (response.details) {
-                                errorMessage += ` - ${response.details}`;
-                            }
-                        } catch (e) {
-                            // Ignore JSON parse error
-                        }
-                        reject(new Error(errorMessage));
+                        reject(new Error(`Upload failed: ${xhr.status}`));
                     }
                 });
 
@@ -427,18 +402,8 @@ createApp({
                     reject(new Error('Network error'));
                 });
 
-                xhr.addEventListener('timeout', () => {
-                    delete uploadSpeed[file.name];
-                    delete uploadStartTime[file.name];
-                    reject(new Error('Upload timeout'));
-                });
-
                 xhr.open('POST', '/api/upload');
                 xhr.setRequestHeader('Authorization', API.getAuthHeaders().Authorization);
-
-                // Важно: не устанавливаем Content-Type для FormData
-                // браузер сам установит правильный boundary
-
                 xhr.send(formData);
             });
         };
