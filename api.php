@@ -1,5 +1,30 @@
-<?php
+// Обработка загрузки файлов
+function handleUpload() {
+    global $config;
+
+    // Логирование для отладки
+    error_log("Upload request received");
+    error_log("POST data: " . print_r($_POST, true));
+    error_log("FILES data: " . print_r($_FILES, true));
+    error_log("Content-Type: " . ($_SERVER['CONTENT_TYPE'] ?? 'not set'));
+    error_log("Content-Length: " . ($_SERVER['CONTENT_LENGTH'] ?? 'not set'));
+
+    // Дополнительная проверка прав (уже проверено, но для безопасности)
+    checkPermission('upload');
+
+    if (!isset($_FILES['file'])) {
+        error_log("No file<?php
 // api.php - Универсальный API для файлового менеджера
+
+// Настройки для больших файлов
+ini_set('max_execution_time', 3600); // 1 час
+ini_set('max_input_time', 3600);
+ini_set('memory_limit', '512M');
+ini_set('post_max_size', '10240M');
+ini_set('upload_max_filesize', '10240M');
+
+// Отключаем ограничение времени выполнения для загрузки
+set_time_limit(0);
 
 // Enable error reporting for debugging (disable in production)
 error_reporting(E_ALL);
@@ -29,7 +54,7 @@ if (!file_exists($configFile)) {
     if (!is_dir(__DIR__ . '/config')) {
         mkdir(__DIR__ . '/config', 0755, true);
     }
-    
+
     // Создаем файл с дефолтными пользователями
     $defaultConfig = '<?php
 return [
@@ -656,12 +681,33 @@ function cleanupSessions() {
 function handleUpload() {
     global $config;
 
+    // Логирование для отладки
+    error_log("=== Upload request received ===");
+    error_log("POST data: " . print_r($_POST, true));
+    error_log("FILES data: " . print_r($_FILES, true));
+    error_log("Content-Type: " . ($_SERVER['CONTENT_TYPE'] ?? 'not set'));
+    error_log("Content-Length: " . ($_SERVER['CONTENT_LENGTH'] ?? 'not set'));
+    error_log("Memory usage: " . memory_get_usage(true) / 1024 / 1024 . " MB");
+
+    // Проверка на превышение post_max_size
+    if (empty($_FILES) && empty($_POST) && $_SERVER['CONTENT_LENGTH'] > 0) {
+        $displaySize = $_SERVER['CONTENT_LENGTH'];
+        $displaySize = $displaySize / 1024 / 1024;
+        error_log("Upload failed: post_max_size exceeded. Attempted size: {$displaySize}MB");
+        http_response_code(413);
+        die(json_encode([
+            'error' => 'File too large. Maximum allowed size exceeded.',
+            'details' => "Attempted upload: {$displaySize}MB, post_max_size: " . ini_get('post_max_size')
+        ]));
+    }
+
     // Дополнительная проверка прав (уже проверено, но для безопасности)
     checkPermission('upload');
 
     if (!isset($_FILES['file'])) {
+        error_log("No file in FILES array");
         http_response_code(400);
-        die(json_encode(['error' => 'No file uploaded']));
+        die(json_encode(['error' => 'No file uploaded', 'debug' => $_FILES]));
     }
 
     $uploadedFile = $_FILES['file'];
